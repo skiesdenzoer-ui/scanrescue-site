@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Emergency medical info – ScanRescue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f4f8;--surface:#fff;--ink:#101828;--muted:#667085;--line:#e2e6ee;--red:#d92d20;--red-ink:#fff;--soft:#fee9e7;--ok:#067647;--call:#067647}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0f17;--surface:#141a26;--ink:#eef2f9;--muted:#98a2b6;--line:#262f42;--red:#ff5a4a;--red-ink:#1a0805;--soft:#3a1a1a;--ok:#4ade80;--call:#16a34a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Plus Jakarta Sans","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px 40px}
+.top{background:var(--red);color:var(--red-ink);margin:0 -16px;padding:14px 16px;display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.02em}
+.top small{margin-left:auto;font-weight:600;opacity:.9;font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px}
+.who{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.who h1{font-size:26px;line-height:1.15;margin:0;letter-spacing:-.01em;word-break:break-word}
+.who p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.blood{flex:none;width:76px;height:76px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-content:center;text-align:center;line-height:1}
+.blood b{font-size:26px}.blood i{font-style:normal;font-size:10px;opacity:.75;margin-top:3px;letter-spacing:.08em}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin:0 0 6px}
+.val{white-space:pre-wrap;word-break:break-word}
+.alert{border-color:var(--red);background:var(--soft)}
+.tag{display:inline-block;background:var(--ok);color:#fff;font-weight:700;font-size:13px;padding:3px 10px;border-radius:99px;margin-top:10px}
+.call{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:inherit;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.call:first-of-type{margin-top:0}
+.call b{display:block}.call span{display:block;color:var(--muted);font-size:14px}
+.call em{font-style:normal;flex:none;background:var(--call);color:#fff;font-weight:800;border-radius:12px;padding:10px 16px}
+.msg{text-align:center;padding:40px 10px;color:var(--muted)}
+.foot{font-size:12px;color:var(--muted);margin-top:18px;text-align:center}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg>EMERGENCY MEDICAL INFO<small>ScanRescue</small></div>
+  <div id="msg" class="msg">Loading…</div>
+  <div id="rec" hidden></div>
+  <p class="foot">Entered by the card holder and not verified by ScanRescue. Always confirm with the patient or a doctor when possible.</p>
+</div>
+
+<script>
+/* Same two values as supabaseUrl and supabaseKey in scanrescue-card-generator.html.
+   The key is the public anon/publishable key. Leave both empty for offline test links. */
+const SUPABASE_URL = "https://mquhxpyagknpiunbzodq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_YVaLH71Otlg3QaHfJmtYbg_930L0txL";
+
+const $ = id => document.getElementById(id);
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+function section(title, value, cls){
+  if(!value) return null;
+  const c = el("section", "card" + (cls ? " " + cls : ""));
+  c.append(el("h2", "", title), el("div", "val", value));
+  return c;
+}
+function contact(name, rel, phone){
+  if(!phone) return null;
+  const a = el("a", "call");
+  a.href = "tel:" + phone.replace(/[^\d+]/g, "");
+  const left = el("div"); left.append(el("b", "", name || "Emergency contact"), el("span", "", rel || ""));
+  a.append(left, el("em", "", "Call " + phone));
+  return a;
+}
+function show(r){
+  const root = $("rec");
+  const who = el("section", "card"), row = el("div", "who"), left = el("div");
+  left.append(el("h1", "", r.n || "Unknown name"));
+  if(r.d){ const d = new Date(r.d + "T00:00"); if(!isNaN(d)) left.append(el("p", "", "Born " + d.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}))); }
+  const blood = el("div", "blood"); blood.append(el("b", "", !r.b || r.b === "Unknown" ? "?" : r.b), el("i", "", "BLOOD"));
+  row.append(left, blood); who.append(row);
+  if(r.o) who.append(el("span", "tag", "Organ donor"));
+  const calls = el("section", "card"); calls.append(el("h2", "", "Call now"));
+  const c1 = contact(r.p, r.q, r.r), c2 = contact(r.s, r.t, r.u), dr = contact(r.w, "Doctor", r.x);
+  [c1, c2, dr].forEach(c => c && calls.append(c));
+  const parts = [who, section("Allergies", r.a, "alert"), section("Medical conditions", r.c), section("Medications", r.m), (c1 || c2 || dr) ? calls : null];
+  parts.forEach(p => p && root.append(p));
+  document.title = (r.n ? r.n + " – " : "") + "Emergency medical info";
+  $("msg").hidden = true; root.hidden = false;
+}
+function fail(t){ $("msg").textContent = t; }
+
+(async () => {
+  const id = new URLSearchParams(location.search).get("id");
+  try{
+    if(id && SUPABASE_URL && SUPABASE_KEY){
+      const res = await fetch(SUPABASE_URL.replace(/\/+$/,"") + "/rest/v1/rpc/get_record", {
+        method:"POST",
+        headers:{"Content-Type":"application/json", apikey:SUPABASE_KEY},
+        body:JSON.stringify({p_id:id})
+      });
+      if(!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      if(!data) return fail("No medical record found for this link.");
+      show(data);
+    }else if(location.hash.length > 1){
+      const r = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
+      if(!Object.keys(r).length) throw new Error("empty");
+      show(r);
+    }else fail("No medical record found for this link.");
+  }catch(_){ fail("We couldn't load this record. Check the signal and scan the code again."); }
+})();
+</script>
+</body>
+</html>
